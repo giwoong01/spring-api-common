@@ -1,0 +1,11 @@
+jdk:
+  - openjdk17
+
+before_install:
+  - sdk install corretto-17.0.5
+  - sdk use java corretto-17.0.5
+  - sdk install maven
+  - mvn -v
+
+install:
+  - ./gradlew build publishToMavenLocal
