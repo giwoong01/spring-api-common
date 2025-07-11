@@ -35,7 +35,7 @@ public class ControllerAdvice {
     public ResponseEntity<RspTemplate<Void>> handleAuthData(RuntimeException e) {
         log.error(e.getMessage());
         return RspTemplate.<Void>builder()
-                .statusCode(HttpStatus.BAD_REQUEST)
+                .statusCode(HttpStatus.UNAUTHORIZED)
                 .message(e.getMessage())
                 .build()
                 .toResponseEntity();

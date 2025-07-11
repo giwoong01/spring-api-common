@@ -6,7 +6,7 @@ plugins {
 }
 
 group = 'com.github.giwoong01'
-version = '0.1.1'
+version = '0.1.2'
 
 java {
     toolchain {
@@ -42,7 +42,7 @@ publishing {
         maven(MavenPublication) {
             groupId = 'com.github.giwoong01.springapicommon'
             artifactId = 'spring-api-common'
-            version = '0.1.1'
+            version = '0.1.2'
 
             from components.java
         }
