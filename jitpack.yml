@@ -1,9 +1,9 @@
 jdk:
-  - openjdk17
+  - openjdk21
 
 before_install:
-  - sdk install corretto-17.0.5
-  - sdk use java corretto-17.0.5
+  - sdk install corretto-21.0.4
+  - sdk use java corretto-21.0.4
   - sdk install maven
   - mvn -v
 
