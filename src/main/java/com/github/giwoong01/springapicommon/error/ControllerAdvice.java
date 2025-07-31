@@ -4,116 +4,102 @@ import com.github.giwoong01.springapicommon.error.exception.AccessDeniedGroupExc
 import com.github.giwoong01.springapicommon.error.exception.AuthGroupException;
 import com.github.giwoong01.springapicommon.error.exception.InvalidGroupException;
 import com.github.giwoong01.springapicommon.error.exception.NotFoundGroupException;
-import com.github.giwoong01.springapicommon.template.RspTemplate;
+import java.net.URI;
+import java.time.OffsetDateTime;
 import java.util.Objects;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.ProblemDetail;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
+import org.springframework.web.ErrorResponse;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 @Slf4j
+@RequiredArgsConstructor
 @RestControllerAdvice
 public class ControllerAdvice {
 
     @ExceptionHandler(InvalidGroupException.class)
-    public ResponseEntity<RspTemplate<Void>> handleInvalidData(RuntimeException e) {
-        log.error(e.getMessage());
-        return RspTemplate.<Void>builder()
-                .statusCode(HttpStatus.BAD_REQUEST)
-                .message(e.getMessage())
-                .build()
-                .toResponseEntity();
+    public ProblemDetail handleInvalidData(RuntimeException e) {
+        return handleException(e, HttpStatus.BAD_REQUEST, e.getMessage());
     }
 
     @ExceptionHandler(AuthGroupException.class)
-    public ResponseEntity<RspTemplate<Void>> handleAuthData(RuntimeException e) {
-        log.error(e.getMessage());
-        return RspTemplate.<Void>builder()
-                .statusCode(HttpStatus.UNAUTHORIZED)
-                .message(e.getMessage())
-                .build()
-                .toResponseEntity();
+    public ProblemDetail handleAuthData(RuntimeException e) {
+        return handleException(e, HttpStatus.UNAUTHORIZED, e.getMessage());
     }
 
     @ExceptionHandler(NotFoundGroupException.class)
-    public ResponseEntity<RspTemplate<Void>> handleNotFoundData(RuntimeException e) {
-        log.error(e.getMessage());
-        return RspTemplate.<Void>builder()
-                .statusCode(HttpStatus.NOT_FOUND)
-                .message(e.getMessage())
-                .build()
-                .toResponseEntity();
+    public ProblemDetail handleNotFoundData(RuntimeException e) {
+        return handleException(e, HttpStatus.NOT_FOUND, e.getMessage());
     }
 
     @ExceptionHandler(AccessDeniedGroupException.class)
-    public ResponseEntity<RspTemplate<Void>> handleAccessDeniedData(RuntimeException e) {
-        log.error(e.getMessage());
-        return RspTemplate.<Void>builder()
-                .statusCode(HttpStatus.FORBIDDEN)
-                .message(e.getMessage())
-                .build()
-                .toResponseEntity();
+    public ProblemDetail handleAccessDeniedData(RuntimeException e) {
+        return handleException(e, HttpStatus.FORBIDDEN, e.getMessage());
     }
 
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
-    protected ResponseEntity<RspTemplate<String>> handleMethodNotSupported(HttpRequestMethodNotSupportedException e) {
-        log.warn(e.getMethod());
-        return RspTemplate.<String>builder()
-                .statusCode(HttpStatus.METHOD_NOT_ALLOWED)
-                .message("지원하지 않는 HTTP 메서드입니다.")
-                .build()
-                .toResponseEntity();
+    protected ProblemDetail handleMethodNotSupported(HttpRequestMethodNotSupportedException e) {
+        return handleException(e, HttpStatus.METHOD_NOT_ALLOWED, "지원하지 않는 HTTP 메서드입니다.");
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
-    protected ResponseEntity<RspTemplate<String>> handleHttpMessageNotReadable(HttpMessageNotReadableException e) {
-        log.warn(e.getMessage());
-        return RspTemplate.<String>builder()
-                .statusCode(HttpStatus.BAD_REQUEST)
-                .message("요청 본문이 올바르지 않습니다.")
-                .build()
-                .toResponseEntity();
+    protected ProblemDetail handleHttpMessageNotReadable(HttpMessageNotReadableException e) {
+        return handleException(e, HttpStatus.BAD_REQUEST, "요청 본문이 올바르지 않습니다.");
     }
 
     @ExceptionHandler(MissingServletRequestParameterException.class)
-    protected ResponseEntity<RspTemplate<String>> handleMissingParam(MissingServletRequestParameterException e) {
-        log.warn("Missing parameter: {}", e.getParameterName());
-        return RspTemplate.<String>builder()
-                .statusCode(HttpStatus.BAD_REQUEST)
-                .message("필수 요청 파라미터가 누락되었습니다: " + e.getParameterName())
-                .build()
-                .toResponseEntity();
+    protected ProblemDetail handleMissingParam(MissingServletRequestParameterException e) {
+        return handleException(e, HttpStatus.BAD_REQUEST, "필수 요청 파라미터가 누락되었습니다: " + e.getParameterName());
     }
 
-    // Validation 관련 예외 처리
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    protected ProblemDetail handleTypeMismatch(MethodArgumentTypeMismatchException e) {
+        return handleException(e, HttpStatus.BAD_REQUEST,
+                String.format("파라미터 '%s'의 값 '%s'를 '%s' 타입으로 변환할 수 없습니다.",
+                        e.getName(), e.getValue(), Objects.requireNonNull(e.getRequiredType()).getSimpleName()));
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    protected ResponseEntity<RspTemplate<String>> handleMethodArgumentNotValidException(
+    protected ProblemDetail handleMethodArgumentNotValidException(
             final MethodArgumentNotValidException e) {
         FieldError fieldError = Objects.requireNonNull(e.getFieldError());
-        String errorMessage = String.format("%s. (%s)", fieldError.getDefaultMessage(), fieldError.getField());
-
-        log.error("Validation error for field {}: {}", fieldError.getField(), fieldError.getDefaultMessage());
-        return RspTemplate.<String>builder()
-                .statusCode(HttpStatus.BAD_REQUEST)
-                .message("유효성 검사 실패")
-                .data(errorMessage)
-                .build()
-                .toResponseEntity();
+        return handleException(e, HttpStatus.BAD_REQUEST,
+                "유효성 검사 실패",
+                String.format("%s. (%s)", fieldError.getDefaultMessage(), fieldError.getField()));
     }
 
     @ExceptionHandler(Exception.class)
-    protected ResponseEntity<RspTemplate<String>> handleUnknownException(Exception e) {
-        log.error("Unhandled exception", e);
-        return RspTemplate.<String>builder()
-                .statusCode(HttpStatus.INTERNAL_SERVER_ERROR)
-                .message("서버 내부 오류가 발생했습니다.")
-                .build()
-                .toResponseEntity();
+    protected ProblemDetail handleUnknownException(Exception e) {
+        return handleException(e, HttpStatus.INTERNAL_SERVER_ERROR, "서버 내부 오류가 발생했습니다.");
     }
+
+    private ProblemDetail handleException(Exception e, HttpStatus status, String title, String... info) {
+        log.error("Exception handled: {}", e.getMessage());
+        return createProblemDetail(e, status, title, info);
+    }
+
+    private ProblemDetail createProblemDetail(final Exception e,
+                                              final HttpStatus status,
+                                              final String title,
+                                              final String... info) {
+        ErrorResponse.Builder builder = ErrorResponse.builder(e, status, title)
+                .type(URI.create("errors"))
+                .property("timestamp", OffsetDateTime.now().toString());
+
+        if (info.length > 0) {
+            builder.property("info", info[0]);
+        }
+
+        return builder.build().getBody();
+    }
+
 }
