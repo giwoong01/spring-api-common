@@ -2,6 +2,7 @@ package com.github.giwoong01.springapicommon.error;
 
 import com.github.giwoong01.springapicommon.error.exception.AccessDeniedGroupException;
 import com.github.giwoong01.springapicommon.error.exception.AuthGroupException;
+import com.github.giwoong01.springapicommon.error.exception.ConflictGroupException;
 import com.github.giwoong01.springapicommon.error.exception.InvalidGroupException;
 import com.github.giwoong01.springapicommon.error.exception.NotFoundGroupException;
 import java.net.URI;
@@ -46,6 +47,11 @@ public class ControllerAdvice {
         return handleException(e, HttpStatus.FORBIDDEN, e.getMessage());
     }
 
+    @ExceptionHandler(ConflictGroupException.class)
+    public ProblemDetail handleConflictData(RuntimeException e) {
+        return handleException(e, HttpStatus.CONFLICT, e.getMessage());
+    }
+
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
     protected ProblemDetail handleMethodNotSupported(HttpRequestMethodNotSupportedException e) {
         return handleException(e, HttpStatus.METHOD_NOT_ALLOWED, "지원하지 않는 HTTP 메서드입니다.");
@@ -79,7 +85,10 @@ public class ControllerAdvice {
 
     @ExceptionHandler(Exception.class)
     protected ProblemDetail handleUnknownException(Exception e) {
-        return handleException(e, HttpStatus.INTERNAL_SERVER_ERROR, "서버 내부 오류가 발생했습니다.");
+        String message = (e.getMessage() != null && !e.getMessage().isBlank())
+                ? e.getMessage()
+                : "서버 내부 오류가 발생했습니다.";
+        return handleException(e, HttpStatus.INTERNAL_SERVER_ERROR, message);
     }
 
     private ProblemDetail handleException(Exception e, HttpStatus status, String title, String... info) {
